@@ -1,0 +1,7 @@
+#toplevel_page_yext .wp-menu-image {
+  background: url('../images/yext-wp-icon-light.png') center center no-repeat;
+}
+
+#toplevel_page_yext a.current .wp-menu-image {
+  background: url('../images/yext-wp-icon-dark.png') center center no-repeat;
+}
