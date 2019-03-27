@@ -1,2 +1,6 @@
 # exclude folders
 .idea
+
+
+# exclude file
+wp-config.php
