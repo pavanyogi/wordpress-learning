@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: wp-so-cron
+ * Plugin Name: WP SO Cron
  * Plugin URI: http://example.com/link1
  * Description: This plugin is for fetching stackoverflow api data using wp cron jobs.
  *
@@ -14,39 +14,35 @@
  */
 
 /**
- * Activation hook for wp-so-cron plugin
- */
-register_activation_hook( __FILE__, 'wp_cron_activation' );
-
-/**
- * Deactivate hook for wp-so-cron plugin
- */
-register_deactivation_hook( __FILE__, 'wp_cron_deactivation' );
-
-/**
  * Activation function for wp-so-cron plugin
  */
-function wp_cron_activation() {
-	if ( ! wp_next_scheduled( 'so_wp_cron_job' ) ) {
-		wp_schedule_event( time(), 'minutes_10', 'so_wp_cron_job' );
+function soq_cron_plugin_activation() {
+
+	if ( ! wp_next_scheduled( 'soq_cron_job' ) ) {
+		wp_schedule_event( time(), 'minutes_10', 'soq_cron_job' );
 	}
 	flush_rewrite_rules();
 }
+register_activation_hook( __FILE__, 'soq_cron_plugin_activation' );
 
 /**
  * Deactivation function for wp-so-cron plugin
  */
-function wp_cron_deactivation() {
-	wp_clear_scheduled_hook( 'so_wp_cron_job' );
+function soq_cron_plugin_deactivation() {
+
+	wp_clear_scheduled_hook( 'soq_cron_job' );
 	flush_rewrite_rules();
 }
+register_deactivation_hook( __FILE__, 'soq_cron_plugin_deactivation' );
+
 
 /**
  * Add 10 minute interval to wp schedules
  *
  * @param array $interval interval for wp cron job.
+ * @return array $interval
  */
-function new_time_interval( $interval ) {
+function soq_create_new_time_interval( $interval ) {
 
 	$interval['minutes_10'] = array(
 		'interval' => 10 * 60,
@@ -55,18 +51,19 @@ function new_time_interval( $interval ) {
 
 	return $interval;
 }
-add_filter( 'cron_schedules', 'new_time_interval' );
+add_filter( 'cron_schedules', 'soq_create_new_time_interval' );
 
 /**
  * Fetch external api
  */
-function so_cron_action() {
+function soq_run_cron_job_actions() {
+
 	$url = 'https://api.stackexchange.com/2.2/questions?order=desc&sort=activity&tagged=php&site=stackoverflow&pagesize=3';
 
 	// retrive the raw data from the url.
 	$request = wp_remote_get( $url );
 
-	// retrive the body from $request.
+	// retrieve the body from $request.
 	$body = wp_remote_retrieve_body( $request );
 
 	$data = json_decode( $body, true );
@@ -76,6 +73,7 @@ function so_cron_action() {
 	$taxonomy = 'so_tags';
 
 	foreach ( $data['items'] as $item ) {
+
 		// insert new tags.
 		foreach ( $item['tags'] as $tag ) {
 			$term = term_exists( $tag, $taxonomy );
@@ -127,12 +125,13 @@ function so_cron_action() {
 		wp_set_object_terms( $post_id, $item['tags'], $taxonomy, true );
 	}
 }
-add_action( 'so_wp_cron_job', 'so_cron_action' );
+add_action( 'soq_cron_job', 'soq_run_cron_job_actions' );
 
 /**
  * Creating a SO Question Custom Post Type
  */
-function so_questions_custom_post_type() {
+function soq_create_questions_custom_post_type() {
+
 	$labels = array(
 		'name'                => __( 'SO Questions' ),
 		'singular_name'       => __( 'SO Question' ),
@@ -155,7 +154,7 @@ function so_questions_custom_post_type() {
 		'supports'            => array( 'title', 'editor', 'excerpt', 'author', 'revisions', 'custom-fields' ),
 		'public'              => true,
 		'hierarchical'        => false,
-		'menu_icon' => plugins_url( 'images/so-icon-20x20.png', __FILE__ ),
+		'menu_icon'           => plugins_url( 'images/so-icon-20x20.png', __FILE__ ),
 		'show_ui'             => true,
 		'show_in_menu'        => true,
 		'show_in_nav_menus'   => true,
@@ -169,12 +168,12 @@ function so_questions_custom_post_type() {
 	);
 	register_post_type( 'so_questions', $args );
 }
-add_action( 'init', 'so_questions_custom_post_type', 0 );
+add_action( 'init', 'soq_create_questions_custom_post_type', 0 );
 
 /**
  * Create a custom taxonomy name it "so_tags" for your custom posts
  */
-function create_so_tags_custom_taxonomy() {
+function soq_create_tags_custom_taxonomy() {
 
 	$labels = array(
 		'name'                => _x( 'SO Tags', 'taxonomy general name' ),
@@ -203,7 +202,7 @@ function create_so_tags_custom_taxonomy() {
 		)
 	);
 }
-add_action( 'init', 'create_so_tags_custom_taxonomy', 0 );
+add_action( 'init', 'soq_create_tags_custom_taxonomy', 0 );
 
 /**
  * Modify content of post (insert tags of custom post in content)
@@ -212,7 +211,7 @@ add_action( 'init', 'create_so_tags_custom_taxonomy', 0 );
  *
  * @return     string  ( tags inserted/appended in the content )
  */
-function show_tags_with_single_post_content( $content ) {
+function soq_show_tags_with_single_post_content( $content ) {
 
 	global $post;
 
@@ -226,4 +225,4 @@ function show_tags_with_single_post_content( $content ) {
 
 	return 'Tags: ' . $tag_content . '<br><br>' . $content;
 }
-add_filter( 'the_content', 'show_tags_with_single_post_content' );
+add_filter( 'the_content', 'soq_show_tags_with_single_post_content' );
